@@ -1,0 +1,69 @@
+@startuml
+' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include <C4/C4_Component>
+
+title Диаграмма компонентов контейнера "Игровой сервис" (Layered Architecture)
+
+' Внешние системы
+Container(web_app, "Веб-приложение", "JS, React/Vue", "Интерфейс")
+ContainerDb(db, "База данных", "PostgreSQL", "Хранилище")
+ContainerDb(cache, "Redis", "Broker/Cache", "Очередь задач")
+
+Container_Boundary(api_app, "Игровой сервис (FastAPI)") {
+
+    ' 1. Слой интерфейсов (API Layer)
+    Boundary(api_layer, "API Layer (Controllers)") {
+        Component(auth_ctrl, "Auth Controller", "FastAPI Router", "Обработка JWT и входа")
+        Component(task_router, "Task Router", "FastAPI Router", "Эндпоинты для работы с задачами")
+        Component(game_router, "Game Router", "FastAPI Router", "Эндпоинты для магазина и дуэлей")
+        Component(report_router, "Report Router", "FastAPI Router", "Эндпоинты для заказа отчетов (Excel/PDF)")
+    }
+
+    ' 2. Слой бизнес-логики (Business Logic / Service Layer)
+    Boundary(service_layer, "Service Layer (Domain Logic)") {
+        Component(task_manager, "Task Manager", "Service", "Логика квестов")
+        Component(rpg_engine, "RPG Engine", "Service", "Формулы опыта и уровней")
+        Component(duel_manager, "Duel Manager", "Service", "Логика соревнований")
+        Component(shop_service, "Shop Service", "Service", "Логика покупок")
+        Component(report_gen, "Report Generator", "Service", "Генерация документов (Pandas/FPDF)")
+    }
+
+    ' 3. Слой доступа к данным (Data Access Layer)
+    Boundary(data_layer, "Data Layer (Persistence)") {
+        Component(repo, "Data Repository", "SQLAlchemy", "CRUD операции с БД")
+    }
+}
+
+' Связи внешние -> Слой API
+Rel(web_app, auth_ctrl, "Авторизация", "JSON/HTTPS")
+Rel(web_app, task_router, "Запросы по задачам", "JSON/HTTPS")
+Rel(web_app, game_router, "Действия в игре", "JSON/HTTPS")
+Rel(web_app, report_router, "Запрос отчета", "JSON/HTTPS")
+
+' Связи API Layer -> Service Layer
+Rel(auth_ctrl, repo, "Валидация пользователя")
+Rel(task_router, task_manager, "Вызов логики задач")
+Rel(game_router, duel_manager, "Запуск дуэли")
+Rel(game_router, shop_service, "Запрос покупки")
+Rel(report_router, report_gen, "Команда на генерацию")
+
+' Связи внутри Service Layer
+Rel(task_manager, rpg_engine, "Начислить опыт")
+Rel(duel_manager, rpg_engine, "Сравнить навыки")
+
+' Связи Service Layer -> Data Layer
+Rel(task_manager, repo, "Сохранить задачу")
+Rel(rpg_engine, repo, "Обновить профиль")
+Rel(shop_service, repo, "Списать валюту")
+Rel(duel_manager, repo, "Лог дуэли")
+Rel(report_gen, repo, "Выборка статистики")
+
+' Связи Data Layer -> Внешние БД
+Rel(repo, db, "SQL запросы", "TCP/IP")
+
+' Связи для асинхронности
+Rel(task_manager, cache, "В очередь на синхронизацию", "RESP")
+Rel(rpg_engine, cache, "Событие для уведомления", "RESP")
+Rel(report_gen, cache, "Фоновая генерация (Celery Task)", "RESP")
+
+@enduml

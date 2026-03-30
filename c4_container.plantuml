@@ -1,0 +1,50 @@
+@startuml
+!NEW_C4_STYLE=0
+' !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include <C4/C4_Container>
+
+title Диаграмма контейнеров КИС "DevQuest"
+
+SHOW_PERSON_OUTLINE()
+
+Person(employee, "Сотрудник", "Разработчик. Использует систему через браузер.")
+Person(curator, "Куратор (TL/HR)", "Руководитель. Использует систему через браузер.")
+Person(admin, "Системный администратор", "Сисадмин. Использует систему через браузер.")
+
+System_Boundary(c1, "Система DevQuest") {
+    Container(web_app, "Веб-приложение", "JavaScript, Vue.js/React", "Интерфейс для профиля, задач, магазина и дуэлей.")
+    
+    Container(api, "Игровой сервис", "Python, FastAPI", "Бизнес-логика RPG, управление пользователями.")
+    
+    Container(sync_service, "Синхронизатор задач", "Python, Celery/TaskIQ", "Обработка фоновых задач и Webhooks.")
+    
+    ContainerDb(db, "База данных", "PostgreSQL", "Данные сотрудников, персонажей и истории.")
+    
+    ContainerDb(cache, "Быстрое хранилище", "Redis", "Брокер сообщений, очередь задач и кэш сессий.")
+}
+
+System_Ext(tracker, "Планировщик задач API", "Jira/GitLab. Источник данных.")
+System_Ext(notif, "Система уведомлений", "SMTP/Telegram API.")
+
+' Связи пользователей
+Rel(employee, web_app, "Использует", "HTTPS")
+Rel(curator, web_app, "Использует", "HTTPS")
+Rel(admin, web_app, "Использует", "HTTPS")
+
+' Связи внутри системы
+Rel(web_app, api, "Делает API вызовы", "JSON/HTTPS")
+Rel(api, db, "Чтение/Запись", "SQL/TCP")
+Rel(api, cache, "Кэширование сессий", "RESP/TCP")
+
+' Работа с очередью (Broker)
+Rel_D(api, cache, "Ставит задачи в очередь", "Message Queue")
+Rel_U(cache, sync_service, "Передает задачи на выполнение", "RESP/TCP")
+
+Rel(sync_service, db, "Обновляет прогресс", "SQL/TCP")
+
+' Внешние связи
+Rel(tracker, sync_service, "Webhook события", "JSON/HTTPS")
+Rel(api, tracker, "Запрашивает детали", "JSON/HTTPS")
+Rel(sync_service, notif, "Отправляет уведомления", "SMTP/API")
+
+@enduml

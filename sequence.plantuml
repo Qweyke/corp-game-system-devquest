@@ -1,0 +1,42 @@
+@startuml
+skinparam style strictuml
+autonumber
+
+actor "Сотрудник" as User
+participant "Веб-приложение" as Web
+box "Игровой сервис (FastAPI)" #f9f9f9
+    participant "API Controller" as Controller
+    participant "RPG Engine" as Engine
+    participant "Repository" as Repo
+end box
+database "PostgreSQL" as DB
+participant "Redis" as Redis
+
+User -> Web : Нажимает "Завершить квест"
+Web -> Controller : POST /tasks/{id}/complete (JWT Token)
+
+activate Controller
+Controller -> Engine : process_task_completion(user_id, task_id)
+
+activate Engine
+Engine -> Repo : get_task_details(task_id)
+Repo -> DB : SELECT * FROM tasks
+DB --> Repo : TaskData (Complexity: Hard)
+
+note over Engine : XP = Base * Complexity\nGold = XP / 10
+
+Engine -> Repo : update_character_progression(user_id, +500XP, +50Gold)
+Repo -> DB : UPDATE characters SET xp = xp + 500...
+DB --> Repo : OK
+
+Engine --> Controller : UpdatedLevelInfo
+deactivate Engine
+
+Controller -> Redis : async_notify_jira(task_id, "Done")
+note right : Уходит в фоновый Синхронизатор
+
+Controller --> Web : JSON: { "status": "Level Up!", "new_xp": 1500 }
+deactivate Controller
+
+Web -> User : Показывает анимацию победы
+@enduml

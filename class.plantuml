@@ -1,0 +1,67 @@
+@startuml
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+package "Domain Entities" {
+    class User {
+        + id: int
+        + username: string
+        + role: Role
+        + authenticate(): bool
+    }
+
+    class Character {
+        + id: int
+        + level: int
+        + experience: int
+        + strength: int
+        + intelligence: int
+        + gold: int
+        + update_stats(xp: int, gold: int)
+        + calculate_power(): int
+    }
+
+    class Task {
+        + id: int
+        + external_id: string
+        + title: string
+        + complexity: Complexity
+        + status: Status
+        + complete()
+    }
+}
+
+package "Services (Logic)" {
+    class RPGEngine {
+        + calculate_reward(task: Task): Reward
+        + apply_level_up(char: Character)
+    }
+
+    class DuelManager {
+        + create_duel(challenger: Character, opponent: Character)
+        + resolve_duel(duel_id: int): DuelResult
+    }
+
+    class ReportGenerator {
+        + generate_xp_report(user_id: int, format: string): File
+        + export_to_excel(data: list)
+    }
+}
+
+package "Data Access" {
+    class DataRepository {
+        + get_user_by_id(id: int): User
+        + save_task(task: Task)
+        + get_character_stats(user_id: int): Character
+    }
+}
+
+' Связи
+User "1" *-- "1" Character : имеет
+Character "1" -- "0..*" Task : выполняет
+RPGEngine ..> Character : модифицирует
+DuelManager ..> Character : сравнивает
+ReportGenerator ..> DataRepository : запрашивает данные
+DataRepository ..> User : загружает
+
+@enduml
