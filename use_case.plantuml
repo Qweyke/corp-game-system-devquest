@@ -1,0 +1,53 @@
+@startuml
+skinparam actorStyle awesome
+left to right direction
+
+actor "Сотрудник" as User
+actor "Куратор (TL/HR)" as Curator
+actor "Администратор системы" as Admin
+actor "Планировщик задач API" as TaskTracker
+
+package "КИС DevQuest" {
+    
+    package "Модуль задач" {
+        usecase "Выбор задачи на доске" as UC_View
+        usecase "Взять задачу в работу" as UC_Take
+        usecase "Завершить задачу" as UC_Done
+    }
+    
+    package "RPG Модуль" {
+        usecase "Получение опыта и валюты за задачу" as UC_Level
+        usecase "Участие в дуэли" as UC_Duel
+        usecase "Обмен валюты на товары" as UC_Shop
+        usecase "Прокачка навыков" as UC_Stats
+    }
+    
+    package "Администрирование" {
+        usecase "Настройка ценности задач" as UC_Config
+        usecase "Выгрузка отчетов" as UC_Reports
+        usecase "Добавление / удаление пользователя" as UC_Add
+    }
+}
+
+' Связи Сотрудника
+User --> UC_View
+User --> UC_Take
+User --> UC_Done
+User --> UC_Level
+User --> UC_Duel
+User --> UC_Shop
+User --> UC_Stats
+
+' Связи Куратора и Админа
+Curator --> UC_Config
+Curator --> UC_Reports
+Curator --> UC_Duel : "Опциональное судейство"
+Admin --> UC_Config
+Admin --> UC_Add
+
+' Взаимодействие с внешней системой
+UC_Take --|> TaskTracker : "POST: Change Status"
+UC_Done --|> TaskTracker : "POST: Set Done"
+TaskTracker --|> UC_View : "Webhook: New Task"
+
+@enduml
