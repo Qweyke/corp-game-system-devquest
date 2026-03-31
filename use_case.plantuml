@@ -30,24 +30,24 @@ package "КИС DevQuest" {
 }
 
 ' Связи Сотрудника
-User --> UC_View
-User --> UC_Take
-User --> UC_Done
-User --> UC_Level
-User --> UC_Duel
-User --> UC_Shop
-User --> UC_Stats
+User -- UC_View
+User -- UC_Take
+User -- UC_Done
+User -- UC_Level
+User -- UC_Duel
+User -- UC_Shop
+User -- UC_Stats
 
 ' Связи Куратора и Админа
-Curator --> UC_Config
-Curator --> UC_Reports
-Curator --> UC_Duel : "Опциональное судейство"
-Admin --> UC_Config
-Admin --> UC_Add
+Curator -- UC_Config
+Curator -- UC_Reports
+Curator -- UC_Duel : "Опциональное судейство"
+Admin -- UC_Config
+Admin -- UC_Add
 
 ' Взаимодействие с внешней системой
-UC_Take --|> TaskTracker : "POST: Change Status"
-UC_Done --|> TaskTracker : "POST: Set Done"
-TaskTracker --|> UC_View : "Webhook: New Task"
+UC_Take -- TaskTracker 
+UC_Done -- TaskTracker 
+TaskTracker -- UC_View
 
 @enduml
