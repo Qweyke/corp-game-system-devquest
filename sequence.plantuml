@@ -4,13 +4,23 @@ autonumber
 
 actor "Сотрудник" as User
 participant "Веб-приложение" as Web
+
 box "Игровой сервис (FastAPI)" #f9f9f9
     participant "API Controller" as Controller
     participant "RPG Engine" as Engine
     participant "Repository" as Repo
 end box
+
 database "PostgreSQL" as DB
-participant "Redis" as Redis
+database "Redis (Broker)" as Redis
+
+box "Синхронизатор (Celery)" #e3f2fd
+    participant "Worker" as Worker
+end box
+
+participant "Jira API" as Jira <<External>>
+
+== Основной цикл (Синхронный) ==
 
 User -> Web : Нажимает "Завершить квест"
 Web -> Controller : POST /tasks/{id}/complete (JWT Token)
@@ -32,11 +42,24 @@ DB --> Repo : OK
 Engine --> Controller : UpdatedLevelInfo
 deactivate Engine
 
-Controller -> Redis : async_notify_jira(task_id, "Done")
-note right : Уходит в фоновый Синхронизатор
+' Отправка в очередь
+Controller -> Redis : LPUSH "jira_sync_queue" {task_id, status: "Done"}
+note right : Асинхронная задача
 
 Controller --> Web : JSON: { "status": "Level Up!", "new_xp": 1500 }
 deactivate Controller
 
 Web -> User : Показывает анимацию победы
+
+== Фоновый цикл (Асинхронный) ==
+
+Redis <- Worker : BRPOP (мониторинг очереди)
+activate Worker
+Worker -> Jira : PATCH /issue/{id} (status: "Done")
+activate Jira
+Jira --> Worker : 204 No Content (Успешно)
+deactivate Jira
+Worker -> DB : log_sync_status(task_id, "Success")
+deactivate Worker
+
 @enduml

@@ -38,7 +38,7 @@ Rel(api, cache, "Кэширование сессий", "RESP/TCP")
 
 ' Работа с очередью (Broker)
 Rel_D(api, cache, "Ставит задачи в очередь", "Message Queue")
-Rel_U(cache, sync_service, "Передает задачи на выполнение", "RESP/TCP")
+Rel_U(sync_service, cache, "Забирает задачи на выполнение", "RESP/TCP")
 
 Rel(sync_service, db, "Обновляет прогресс", "SQL/TCP")
 

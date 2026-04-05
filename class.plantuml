@@ -6,18 +6,19 @@ package "Domain Entities" {
     class User {
         + id: int
         + username: string
+        + password_hash: string
         + role: Role
-        + authenticate(): bool
+        + is_active: bool
     }
 
     class Character {
         + id: int
+        + user_id: int
         + level: int
         + experience: int
         + strength: int
         + intelligence: int
         + gold: int
-        + update_stats(xp: int, gold: int)
         + calculate_power(): int
     }
 
@@ -27,41 +28,60 @@ package "Domain Entities" {
         + title: string
         + complexity: Complexity
         + status: Status
-        + complete()
+        + created_at: datetime
     }
 }
 
 package "Services (Logic)" {
     class RPGEngine {
         + calculate_reward(task: Task): Reward
-        + apply_level_up(char: Character)
+        + apply_level_up(char: Character): void
+        + process_exp_gain(char: Character, amount: int): void
     }
 
     class DuelManager {
-        + create_duel(challenger: Character, opponent: Character)
+        + create_duel(challenger_id: int, opponent_id: int): Duel
+        + get_duel_history(user_id: int): List<Duel>
         + resolve_duel(duel_id: int): DuelResult
+        + cancel_duel(duel_id: int): bool
     }
 
     class ReportGenerator {
-        + generate_xp_report(user_id: int, format: string): File
-        + export_to_excel(data: list)
+        + fetch_stats(filters: dict): List
+        + format_as_excel(data: list): binary
+        + format_as_pdf(data: list): binary
+        + generate_user_report(user_id: int): File
     }
 }
 
 package "Data Access" {
     class DataRepository {
-        + get_user_by_id(id: int): User
-        + save_task(task: Task)
-        + get_character_stats(user_id: int): Character
+        ' CRUD для User
+        + create_user(user: User): int
+        + get_user(id: int): User
+        + update_user(id: int, data: dict): bool
+        + delete_user(id: int): bool
+        
+        ' CRUD для Character
+        + create_character(char: Character): int
+        + get_character_by_user(user_id: int): Character
+        + update_character(id: int, data: dict): bool
+        
+        ' CRUD для Task
+        + create_task(task: Task): int
+        + get_task(id: int): Task
+        + get_all_tasks(filters: dict): List<Task>
+        + update_task(id: int, status: string): bool
+        + delete_task(id: int): bool
     }
 }
 
 ' Связи
-User "1" *-- "1" Character : имеет
-Character "1" -- "0..*" Task : выполняет
-RPGEngine ..> Character : модифицирует
-DuelManager ..> Character : сравнивает
-ReportGenerator ..> DataRepository : запрашивает данные
-DataRepository ..> User : загружает
-
+User "1" *-- "1" Character : владеет
+Character "1" -- "0..*" Task : назначены
+RPGEngine ..> Character : модифицирует статы
+DuelManager ..> Character : использует для расчета
+ReportGenerator ..> DataRepository : запрашивает выборки
+DataRepository ..> User : управляет состоянием
+DataRepository ..> Task : управляет состоянием
 @enduml
