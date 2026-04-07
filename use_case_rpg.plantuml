@@ -1,0 +1,30 @@
+@startuml
+skinparam actorStyle awesome
+left to right direction
+
+actor "Сотрудник" as User
+actor "Куратор (HR)" as Curator
+actor "Администратор" as Admin
+
+package "RPG & Duel Subsystem (Danila)" {
+    usecase "Просмотр характеристик героя" as UC_Stats
+    usecase "Распределение очков навыков" as UC_LevelUp
+    usecase "Вызов оппонента на дуэль" as UC_Challenge
+    usecase "Принятие/Отклонение вызова" as UC_Accept
+    usecase "Расчет итогов поединка" as UC_Calc
+    usecase "Просмотр глобального лидерборда" as UC_Rank
+    usecase "Выгрузка Боевого листка (PDF)" as UC_PDF
+}
+
+User -- UC_Stats
+User -- UC_LevelUp
+User -- UC_Challenge
+User -- UC_Accept
+User -- UC_Rank
+
+Curator -- UC_PDF
+Curator -- UC_Rank
+
+Admin -- UC_Calc
+Admin -- UC_PDF
+@enduml

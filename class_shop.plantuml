@@ -1,0 +1,80 @@
+@startuml
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+package "Economy & Task Entities" {
+    class Task {
+        + id: int
+        + external_id: string
+        + title: string
+        + complexity: task_complexity
+        + status: string
+    }
+
+    class ShopItem {
+        + id: int
+        + name: string
+        + price: int
+        + item_type: string
+    }
+
+    class InventoryRecord {
+        + id: int
+        + character_id: int
+        + item_id: int
+        + purchased_at: datetime
+    }
+
+    
+}
+
+class Character {
+        + id: int
+        + user_id: int
+        + level: int
+        + experience: int
+        + strength: int
+        + intelligence: int
+        + calculate_power(): int
+    }
+
+package "Economy Logic Services" {
+    class TaskSynchronizer {
+        + fetch_from_jira(ext_id: string): Task
+        + update_task_status(ext_id: string, status: string): bool
+    }
+
+    class StoreService {
+        + process_purchase(char_id: int, item_id: int): bool
+        + validate_balance(char_id: int, price: int): bool
+    }
+
+    class FinancialReporter {
+        + generate_invoice(purchase_id: int): File
+        + get_inventory_report(char_id: int): List
+    }
+}
+
+package "Data Access (Task & Shop CRUD)" {
+    class EconomyRepository {
+        + create_task(data: dict): int
+        + get_task_by_external_id(ext_id: string): Task
+        + update_task(id: int, data: dict): bool
+        + delete_task(id: int): bool
+
+        + create_inventory_entry(data: dict): int
+        + get_shop_items(): List<ShopItem>
+        + update_item_price(id: int, price: int): bool
+    }
+}
+
+' Связи
+Task "0..*" -- "1" Character : назначена
+InventoryRecord "0..*" -- "1" Character : в инвентаре
+InventoryRecord "1" -- "1" ShopItem : ссылается
+TaskSynchronizer ..> Task : синхронизирует
+StoreService ..> InventoryRecord : создает
+FinancialReporter ..> EconomyRepository : запрашивает данные
+EconomyRepository ..> Task : CRUD
+EconomyRepository ..> InventoryRecord : CRUD
+@enduml

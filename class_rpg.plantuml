@@ -1,0 +1,72 @@
+@startuml
+skinparam style strictuml
+skinparam classAttributeIconSize 0
+
+package "RPG Domain Entities" {
+    class User {
+        + id: int
+        + username: string
+        + role: string
+    }
+
+    class Character {
+        + id: int
+        + user_id: int
+        + level: int
+        + experience: int
+        + strength: int
+        + intelligence: int
+        + calculate_power(): int
+    }
+
+    class Duel {
+        + id: int
+        + challenger_id: int
+        + opponent_id: int
+        + winner_id: int
+        + status: duel_status
+    }
+}
+
+package "RPG Logic Services" {
+    class RPGEngine {
+        + process_exp_gain(char: Character, amount: int): void
+        + apply_level_up(char: Character): void
+        + update_stats(char_id: int, stats: dict): bool
+    }
+
+    class DuelManager {
+        + create_duel(challenger: int, opponent: int): int
+        + resolve_duel(duel_id: int): void
+        + get_duel_history(char_id: int): List<Duel>
+        + cancel_duel(duel_id: int): bool
+    }
+
+    class CombatReporter {
+        + generate_battle_sheet(duel_id: int): File
+        + get_leaderboard(): List<Character>
+    }
+}
+
+package "Data Access (RPG CRUD)" {
+    class RPGRepository {
+        + create_character(data: dict): int
+        + get_character(id: int): Character
+        + update_character_stats(id: int, data: dict): bool
+        + delete_character(id: int): bool
+        
+        + create_duel_entry(data: dict): int
+        + get_duel_details(id: int): Duel
+        + update_duel_status(id: int, status: string): bool
+    }
+}
+
+' Связи
+User "1" *-- "1" Character : владеет
+Character "1" -- "0..*" Duel : участвует
+RPGEngine ..> Character : модифицирует
+DuelManager ..> Duel : управляет
+CombatReporter ..> RPGRepository : запрашивает данные
+RPGRepository ..> Character : CRUD
+RPGRepository ..> Duel : CRUD
+@enduml

@@ -1,0 +1,63 @@
+@startuml
+skinparam style strictuml
+autonumber
+
+actor "Сотрудник (Инициатор)" as User
+participant "Web Interface" as Web
+
+box "RPG Subsystem (FastAPI)" #f9f9f9
+    participant "Duel Controller" as Controller
+    participant "Duel Manager" as Manager
+    participant "RPG Repository" as Repo
+end box
+
+database "PostgreSQL" as DB
+database "Redis (Broker)" as Redis
+
+box "Notification Service" #fff2cc
+    participant "Pusher/WS Worker" as Notify
+end box
+
+actor "Оппонент" as Opponent
+
+== Инициация и проверка ==
+
+User -> Web : Выбор оппонента и "Вызов"
+Web -> Controller : POST /duels/challenge (opponent_id)
+
+activate Controller
+Controller -> Manager : create_duel_request(challenger_id, opponent_id)
+
+activate Manager
+Manager -> Repo : get_characters_stats(ids)
+Repo -> DB : SELECT strength, intelligence FROM characters
+DB --> Repo : StatsData
+Repo --> Manager : OK
+
+note over Manager : Валидация: \nchallenger_id != opponent_id
+
+Manager -> Repo : insert_duel(status='Pending')
+Repo -> DB : INSERT INTO duels
+DB --> Repo : OK (ID: 101)
+
+== Асинхронное уведомление с подтверждением ==
+
+Manager -> Redis : LPUSH "notifications" {duel_id: 101, to: opponent_id}
+deactivate Manager
+
+Redis <- Notify : BRPOP "notifications"
+activate Notify
+Notify -> Opponent : Push-уведомление / WebSocket event
+Opponent --> Notify : Delivery Ack (получено устройством)
+
+Notify -> Redis : SET "duel_101_notified" true
+Notify -> Controller : Callback: Notification Delivered
+deactivate Notify
+
+== Завершение цикла ==
+
+Controller --> Web : JSON: { "status": "Sent & Delivered", "duel_id": 101 }
+deactivate Controller
+
+Web -> User : "Вызов отправлен и доставлен оппоненту"
+@enduml

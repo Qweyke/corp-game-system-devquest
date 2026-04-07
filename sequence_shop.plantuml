@@ -1,0 +1,51 @@
+@startuml
+skinparam style strictuml
+autonumber
+
+actor "Сотрудник" as User
+participant "Web Interface" as Web
+
+box "Task & Economy Service" #e3f2fd
+    participant "Task Controller" as T_Ctrl
+    participant "Economy Engine" as Econ
+    participant "Sync Manager" as Sync
+end box
+
+database "PostgreSQL" as DB
+participant "Jira API" as Jira <<External>>
+
+== Завершение задачи и синхронизация ==
+
+User -> Web : Клик "Завершить задачу"
+Web -> T_Ctrl : PATCH /tasks/{ext_id}/complete
+
+activate T_Ctrl
+T_Ctrl -> Sync : trigger_jira_update(ext_id, status='Done')
+
+activate Sync
+Sync -> Jira : PATCH /issue/{ext_id} (status: "Done")
+Jira --> Sync : 204 No Content
+Sync --> T_Ctrl : Sync Confirmed
+deactivate Sync
+
+T_Ctrl -> Econ : apply_task_rewards(user_id, task_id)
+
+activate Econ
+Econ -> DB : SELECT complexity FROM tasks WHERE id = task_id
+DB --> Econ : complexity='Hard'
+
+note over Econ : Расчет: Gold +500, XP +1000
+
+Econ -> DB : UPDATE characters SET gold=gold+500, xp=xp+1000
+DB --> Econ : OK (Update Successful)
+Econ --> T_Ctrl : Rewards Applied
+deactivate Econ
+
+T_Ctrl -> DB : UPDATE tasks SET status='done', completed_at=NOW()
+DB --> T_Ctrl : Final Commit
+
+T_Ctrl --> Web : JSON: { "status": "Success", "reward": 500 }
+deactivate T_Ctrl
+
+Web -> User : "Задача закрыта в Jira, золото начислено!"
+@enduml

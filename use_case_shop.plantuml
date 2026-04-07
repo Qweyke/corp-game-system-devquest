@@ -1,0 +1,29 @@
+@startuml
+skinparam actorStyle awesome
+left to right direction
+
+actor "Сотрудник" as User
+actor "Куратор (TL)" as Curator
+actor "Task Tracker API" as Jira
+
+package "Task & Shop Subsystem (Partner)" {
+    usecase "Синхронизация задач из Jira" as UC_Sync
+    usecase "Выбор задачи в работу" as UC_Select
+    usecase "Подтверждение выполнения" as UC_Finish
+    usecase "Просмотр ассортимента магазина" as UC_ShopView
+    usecase "Покупка мерча за золото" as UC_Buy
+    usecase "Формирование чека/накладной" as UC_Invoice
+}
+
+User -- UC_Select
+User -- UC_Finish
+User -- UC_ShopView
+User -- UC_Buy
+
+Curator -- UC_Sync
+Curator -- UC_Invoice
+
+Jira -- UC_Sync
+Jira -- UC_Select
+Jira -- UC_Finish
+@enduml
